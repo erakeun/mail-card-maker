@@ -1,0 +1,2269 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>경기대학교 메일 명함 제작기</title>
+
+  <!-- Separate edition: no analytics or legacy feedback endpoint. -->
+  <!-- Pretendard -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard/dist/web/static/pretendard.css">
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", Arial, sans-serif;
+      background: #f3f4f6;
+      color: #222;
+    }
+
+    .wrap {
+      max-width: 1700px;
+      margin: 24px auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 410px minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel,
+    .preview {
+      min-width: 0;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.08);
+      padding: 20px;
+    }
+
+    .panel {
+      max-height: calc(100vh - 48px);
+      overflow-y: auto;
+    }
+
+    .preview {
+      position: sticky;
+      top: 24px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .editor-heading {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .version-badge {
+      flex: 0 0 auto;
+      padding: 6px 9px;
+      border: 1px solid #bfd0df;
+      border-radius: 999px;
+      background: #f7fbff;
+      color: #0f4c81;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .02em;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .dot-thumbnails { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:300px;overflow:auto;margin:12px 0;padding:4px; }
+    .dot-pose { display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px;border:2px solid #d0d7de;background:#fff;font-size:11px;line-height:1.4;word-break:keep-all; }
+    .dot-pose img { width:72px;height:72px;object-fit:contain;image-rendering:pixelated; }
+    .dot-pose[aria-pressed="true"] { border-color:#0f4c81;background:#eef5fb; }
+    .pixel-art { image-rendering:pixelated; }
+    .flip-option { display:flex;align-items:center;gap:8px;min-height:44px; }
+    .flip-option input { width:18px;height:18px; }
+    .dot-thumbnails.hidden { display:none; }
+
+    .template-picker {
+      min-width: 0;
+      margin: 0 0 14px;
+      padding: 0;
+      border: 0;
+    }
+
+    .template-picker legend {
+      margin-bottom: 8px;
+      padding: 0;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .template-options {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .template-option {
+      position: relative;
+      min-width: 0;
+      cursor: pointer;
+    }
+
+    .template-option input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+    }
+
+    .template-card {
+      display: flex;
+      height: 100%;
+      min-height: 80px;
+      flex-direction: column;
+      gap: 6px;
+      padding: 5px;
+      border: 2px solid #d0d7de;
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .template-card img {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 2048 / 706;
+      border-radius: 4px;
+    }
+
+    .template-card-name {
+      margin: auto 0;
+      font-size: 11px;
+      line-height: 1.35;
+      text-align: center;
+      word-break: keep-all;
+    }
+
+    .template-option input:checked + .template-card {
+      border-color: #0f4c81;
+      background: #eef5fb;
+      box-shadow: 0 0 0 1px #0f4c81;
+    }
+
+    .template-option input:checked + .template-card .template-card-name {
+      color: #0f4c81;
+      font-weight: 800;
+    }
+
+    .template-option input:focus-visible + .template-card {
+      outline: 3px solid #5b9bd5;
+      outline-offset: 2px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      min-height: 44px;
+      padding: 11px 12px;
+      border: 1px solid #d0d7de;
+      border-radius: 10px;
+      font-size: 14px;
+      background: #fff;
+      font-family: inherit;
+    }
+
+    .field input[type="file"] {
+      padding: 9px 10px;
+    }
+
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      min-height: 44px;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .45;
+    }
+
+    .btn-primary {
+      background: #0f4c81;
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .preview-title {
+      margin: 0 0 14px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .preview canvas {
+      width: 100%;
+      height: auto;
+      border: 1px solid #ddd;
+      background: #fff;
+      display: block;
+    }
+
+    .mobile-preview {
+      display: none;
+    }
+
+    .asset-preview {
+      height: 110px;
+      border: 1px solid #d0d7de;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .asset-preview img {
+      max-width: 90px;
+      max-height: 90px;
+      object-fit: contain;
+    }
+
+    .photo-preview img {
+      width: 90px;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+
+    .range-field {
+      margin: 18px 0;
+      padding-top: 4px;
+    }
+
+    .range-field > label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .range-row {
+      display: grid;
+      grid-template-columns: 42px 1fr 52px;
+      gap: 8px;
+      align-items: center;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+
+    .range-row input {
+      width: 100%;
+    }
+
+    .check-group {
+      margin: 16px 0;
+      padding: 12px;
+      border: 1px solid #d0d7de;
+      border-radius: 10px;
+      background: #fafafa;
+    }
+
+    .check-group-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .check-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 10px;
+      font-size: 13px;
+    }
+
+    .check-grid label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .editor-messages {
+      margin: 4px 0 14px;
+      padding: 12px 14px;
+      border: 1px solid #e7b65f;
+      border-radius: 10px;
+      background: #fff8e8;
+      color: #714b08;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .editor-messages.has-error {
+      border-color: #e2a2a2;
+      background: #fff1f1;
+      color: #8a1f1f;
+    }
+
+    .editor-messages strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .editor-messages ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .required-note {
+      color: #9a3412;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .reset-dialog {
+      width: min(420px, calc(100% - 32px));
+      padding: 0;
+      border: 0;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
+    }
+
+    .reset-dialog::backdrop {
+      background: rgba(15, 23, 42, .45);
+    }
+
+    .reset-dialog-content {
+      padding: 24px;
+    }
+
+    .reset-dialog-title {
+      margin: 0 0 10px;
+      font-size: 20px;
+    }
+
+    .reset-dialog-message {
+      margin: 0;
+      color: #555;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    :focus-visible {
+      outline: 3px solid #5b9bd5;
+      outline-offset: 2px;
+    }
+
+    .field input:focus-visible,
+    .field select:focus-visible {
+      border-color: #0f4c81;
+      box-shadow: 0 0 0 3px rgba(15, 76, 129, .15);
+    }
+
+    .mode-box {
+      margin: 18px 0 16px;
+      padding: 14px;
+      border: 1px solid #bfd0df;
+      border-radius: 12px;
+      background: #f7fbff;
+    }
+
+    .mode-box .field {
+      margin-bottom: 0;
+    }
+
+    .section-box {
+      padding: 14px;
+      border: 1px solid #d0d7de;
+      border-radius: 12px;
+      background: #fafafa;
+      margin-bottom: 16px;
+    }
+
+    details.section-box > summary {
+      min-height: 44px;
+      padding: 11px 0;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    details.section-box { padding-top: 2px; padding-bottom: 2px; }
+    details.section-box[open] { padding-bottom: 14px; }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .privacy-note {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #eef7ee;
+      color: #285c2f;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .help {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.55;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .patch-notes {
+      margin-top: 18px;
+      padding: 18px;
+      border: 1px solid #d0d7de;
+      border-radius: 12px;
+      background: #fafafa;
+    }
+
+    .patch-notes-title {
+      margin: 0 0 12px;
+      font-size: 17px;
+      font-weight: 800;
+      color: #0f4c81;
+    }
+
+    .patch-item + .patch-item {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .patch-date {
+      display: inline-block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #555;
+    }
+
+    .patch-item ul {
+      margin: 0;
+      padding-left: 20px;
+      color: #444;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    @media (max-width: 1100px) {
+      .wrap {
+        grid-template-columns: 1fr;
+      }
+
+      .preview {
+        position: static;
+      }
+
+      .panel {
+        max-height: none;
+        overflow-y: visible;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .wrap {
+        padding: 0 12px;
+        margin: 12px auto;
+      }
+
+      .panel,
+      .preview {
+        padding: 16px;
+        border-radius: 12px;
+      }
+
+      .editor-heading {
+        align-items: flex-start;
+      }
+
+      .version-badge {
+        margin-top: 1px;
+      }
+
+      .mobile-preview {
+        position: sticky;
+        top: 8px;
+        z-index: 10;
+        display: block;
+        margin: 0 0 18px;
+        padding: 8px;
+        border: 1px solid #bfd0df;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, .96);
+        box-shadow: 0 8px 20px rgba(15, 76, 129, .14);
+        backdrop-filter: blur(8px);
+      }
+
+      .mobile-preview-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        min-height: 44px;
+      }
+
+      .mobile-preview-title {
+        padding-left: 4px;
+        color: #0f4c81;
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .preview-toggle {
+        padding: 8px 10px;
+        background: #eef5fb;
+        color: #0f4c81;
+        font-size: 13px;
+      }
+
+      .mobile-preview canvas {
+        width: 100%;
+        height: auto;
+        border: 1px solid #d0d7de;
+        background: #fff;
+        display: block;
+      }
+
+      .mobile-preview.is-collapsed .mobile-preview-body {
+        display: none;
+      }
+
+      .desktop-preview-content {
+        display: none;
+      }
+
+      .two,
+      .check-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .range-row input,
+      .check-grid label {
+        min-height: 44px;
+      }
+    }
+  </style>
+<style id="mach-home-navigation-style">
+/* Screen navigation only. Keep outside all generated artwork. */
+.mach-home-nav{display:block;max-width:100%;margin:0 0 12px;box-sizing:border-box}
+.mach-home-link{display:inline-flex;align-items:center;justify-content:center;min-height:44px;max-width:100%;padding:4px 8px;box-sizing:border-box;border-radius:6px;background:#fff;text-decoration:none}
+.mach-home-link img{aspect-ratio:3/1;display:block;width:168px;max-width:100%;height:auto;object-fit:contain}
+.mach-home-link:focus-visible{outline:3px solid #165dcb;outline-offset:3px}
+@media print{.mach-home-nav{display:none!important}}
+</style>
+
+<style id="mach-feedback-style">
+.mach-feedback-link{display:inline-flex;align-items:center;justify-content:center;min-height:44px;max-width:100%;padding:8px 14px;box-sizing:border-box;border:1px solid #b6c7dd;border-radius:8px;background:#fff;color:#145cbd;font:inherit;line-height:1.4;text-align:center;text-decoration:underline}
+.mach-feedback-link:focus-visible{outline:3px solid #165dcb;outline-offset:3px}
+@media print{.mach-feedback-link,[data-mach-feedback-container]{display:none!important}}
+.mach-home-nav{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+</style>
+<style>body{background:#edf4f9}.btn-primary{background:#215292}.panel{border-top:5px solid #215292}.preview{border-top:5px solid #389D89}.version-badge{background:#CAE3F6;color:#215292}</style></head>
+
+<body>
+  <div class="wrap">
+    <div class="panel">
+<div class="mach-home-nav"><a href="../">한양대 버전</a> · <a href="SOURCES.md">경기대 자산 출처</a></div>
+      <div class="editor-heading">
+        <h1>경기대학교 메일 명함 제작기</h1>
+          <span class="version-badge">KGU · 1.0</span>
+      </div>
+
+      <div class="mobile-preview" id="mobilePreview">
+        <div class="mobile-preview-header">
+          <span class="mobile-preview-title">실시간 미리보기</span>
+          <button
+            class="preview-toggle"
+            id="previewToggle"
+            type="button"
+            aria-expanded="true"
+            aria-controls="mobilePreviewBody"
+          >미리보기 접기</button>
+        </div>
+        <div class="mobile-preview-body" id="mobilePreviewBody">
+          <canvas id="mobileCanvas" width="2048" height="706" role="img" aria-label="메일 명함 실시간 미리보기"></canvas>
+        </div>
+      </div>
+
+      <fieldset class="template-picker" aria-describedby="templateStatus">
+        <legend>명함 디자인</legend>
+        <div class="template-options" id="templateOptions"></div>
+        <div class="help" id="templateStatus" role="status" aria-live="polite">기본형 · 총 7종</div>
+      </fieldset>
+
+      <div class="field">
+        <label for="logoType">로고</label>
+        <select id="logoType">
+          <option value="kyonggi">경기대학교 공식 시그니처</option>
+          <option value="custom">직접 올린 로고</option>
+          <option value="none">로고 없음</option>
+        </select>
+      </div>
+
+      <div id="customLogoControls" class="field hidden">
+        <label for="logoUpload">로고 파일 선택</label>
+        <input id="logoUpload" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" aria-describedby="logoUploadStatus" />
+        <div class="help" id="logoUploadStatus" role="status" aria-live="polite">PNG·JPG·WEBP, 최대 20MB. 투명 배경 PNG를 권장해.</div>
+        <div class="privacy-note">로고 파일은 현재 브라우저에서만 처리하며 서버에 업로드하지 않아.</div>
+      </div>
+
+      <details class="section-box" id="logoAdjustments">
+        <summary>로고 위치·크기·색상 조절</summary>
+        <div class="range-field">
+          <div class="range-row"><span>좌우</span><input id="logoOffsetX" type="range" min="-2000" max="2000" value="0" aria-label="로고 좌우 위치" /><span id="logoOffsetXValue">0</span></div>
+          <div class="range-row"><span>상하</span><input id="logoOffsetY" type="range" min="-650" max="650" value="0" aria-label="로고 상하 위치" /><span id="logoOffsetYValue">0</span></div>
+          <div class="range-row"><span>크기</span><input id="logoScale" type="range" min="25" max="250" value="100" aria-label="로고 크기" /><span id="logoScaleValue">100</span></div>
+        </div>
+        <div class="field">
+          <label for="logoColor">로고 색상</label>
+          <select id="logoColor"><option value="auto">자동 (직접 올린 로고는 원본)</option><option value="original">원본 색상</option><option value="white">흰색</option></select>
+          <div class="help">투명 로고는 어두운 배경에서 흰색으로 바꿀 수 있어.</div>
+        </div>
+        <button id="resetLogoPlacement" class="btn-secondary" type="button">로고 배치 초기화</button>
+      </details>
+
+      <div class="field">
+        <label for="name">이름 <span class="required-note">(필수)</span></label>
+        <input id="name" type="text" value="김경기 (예시)" autocomplete="name" required />
+      </div>
+
+      <div class="field">
+        <label for="title">직급</label>
+        <input id="title" type="text" value="담당 (예시)" />
+      </div>
+
+      <div class="field">
+        <label for="team">팀명 / 소속</label>
+        <input id="team" type="text" value="경기대학교 | 예시부서" />
+      </div>
+
+      <div class="field">
+        <label for="work">담당업무 <span style="font-weight:400;color:#777;">(선택)</span></label>
+        <input id="work" type="text" value="" placeholder="예: 홍보 콘텐츠 제작 및 사진 촬영" />
+        <div class="help">입력하지 않으면 명함에 표시되지 않음. 입력 시 한 줄로 표시되고, 길면 자동 축소됨.</div>
+      </div>
+
+      <div class="field">
+        <label for="email">이메일 <span class="required-note">(필수)</span></label>
+        <input id="email" type="email" value="example@example.com" autocomplete="email" spellcheck="false" required />
+      </div>
+
+      <div class="field">
+        <label for="phone">전화번호</label>
+        <input id="phone" type="tel" value="000-0000-0000" autocomplete="tel" inputmode="tel" />
+      </div>
+
+      <div class="field">
+        <label for="campus">캠퍼스 (선택하면 공식 주소 반영)</label><select id="campus"><option value="suwon">수원캠퍼스</option><option value="seoul">서울캠퍼스</option></select><label for="address">사무실 주소 · 직접 수정 가능</label>
+        <input id="address" type="text" value="(16227) 경기도 수원시 영통구 광교산로 154-42" />
+      </div>
+
+      <div class="field"><label for="textFont">글꼴</label><select id="textFont"><option value="sans">고딕</option><option value="serif">명조</option></select><label for="textColor">본문 글자색</label><input id="textColor" type="color" value="#253247"></div><div class="editor-messages hidden" id="editorMessages" role="status" aria-live="polite" aria-atomic="true"></div>
+
+      <div class="field">
+        <label for="exportWidth">다운로드 가로폭(px)</label>
+        <input id="exportWidth" type="number" min="100" max="5000" value="750" />
+        <div class="help">기본값 750px, 최대 5000px. 선택한 해상도에서 글자와 로고를 직접 그려 저장해. 원본 이미지가 클수록 더 선명해.</div>
+      </div>
+
+      <div class="check-group">
+        <div class="check-group-title">글자 굵기 설정</div>
+        <div class="check-grid">
+          <label><input id="boldName" type="checkbox" checked> 이름 굵게</label>
+          <label><input id="boldTitle" type="checkbox" checked> 직급 굵게</label>
+          <label><input id="boldTeam" type="checkbox" checked> 소속 굵게</label>
+          <label><input id="boldWork" type="checkbox"> 담당업무 굵게</label>
+          <label><input id="boldContact" type="checkbox" checked> 연락처 굵게</label>
+          <label><input id="boldAddress" type="checkbox" checked> 주소 굵게</label>
+        </div>
+      </div>
+
+      <div class="mode-box">
+        <div class="field">
+          <label for="imageMode">명함 이미지</label>
+          <select id="imageMode">
+            <option value="character">캐릭터 사용</option>
+            <option value="photo">내 사진 사용</option>
+            <option value="none">이미지 사용 안 함</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="characterControls" class="section-box">
+        <p class="section-title">캐릭터 설정</p>
+
+        <div class="two">
+          <div class="field">
+            <label for="category">캐릭터 분류</label>
+            <select id="category"><option value="all">기룡이 공식 기본형 6종</option></select>
+          </div>
+
+          <div class="field">
+            <label for="character">캐릭터</label>
+            <select id="character"></select>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-secondary" id="prevBtn" type="button">이전</button>
+          <button class="btn-secondary" id="nextBtn" type="button">다음</button>
+        </div>
+
+        <div class="asset-preview">
+          <img id="charPreview" alt="캐릭터 미리보기" />
+        </div>
+
+        <div class="help" id="charCountInfo"></div>
+        <div id="dotThumbnails" class="dot-thumbnails hidden" role="group" aria-label="캐릭터 포즈 선택"></div>
+        <div class="help" id="characterStatus" role="status" aria-live="polite"></div>
+        <button id="clearCharacterBtn" class="btn-secondary" type="button">캐릭터 선택 해제</button>
+        <label class="flip-option"><input id="charFlip" disabled type="checkbox"> 원본 방향 유지 (좌우반전 불가)</label>
+        <div class="help hidden" id="charFlipWarning" role="status"></div>
+
+        <div class="range-field">
+          <label>캐릭터 위치/크기 미세조정</label>
+          <div class="range-row">
+            <span>좌우</span>
+            <input id="charOffsetX" type="range" min="-250" max="250" value="0" aria-label="캐릭터 좌우 위치" />
+            <span id="charOffsetXValue">0</span>
+          </div>
+          <div class="range-row">
+            <span>상하</span>
+            <input id="charOffsetY" type="range" min="-250" max="250" value="0" aria-label="캐릭터 상하 위치" />
+            <span id="charOffsetYValue">0</span>
+          </div>
+          <div class="range-row">
+            <span>크기</span>
+            <input id="charScale" type="range" min="40" max="160" value="100" aria-label="캐릭터 크기" />
+            <span id="charScaleValue">100</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="photoControls" class="section-box hidden">
+        <p class="section-title">내 사진 설정</p>
+
+        <div class="field">
+          <label for="photoUpload">사진 파일 선택</label>
+          <input
+            id="photoUpload"
+            type="file"
+            accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+          />
+          <div class="privacy-note">
+            선택한 사진은 서버에 업로드하지 않고 이 기기에 명함과 함께 자동 저장돼. 편집파일에도 포함돼.
+            사진 파일명과 사진 내용은 다운로드 통계에도 포함되지 않음.
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="photoShape">사진 모양</label>
+          <select id="photoShape">
+            <option value="rounded">둥근 사각형</option>
+            <option value="square">사각형</option>
+            <option value="circle">원형</option>
+          </select>
+        </div>
+
+        <div class="asset-preview photo-preview">
+          <img id="photoPreview" alt="업로드한 사진 미리보기" />
+        </div>
+
+        <div class="help">PNG, JPG, JPEG, WEBP 파일을 사용할 수 있음. 사진을 바꾸려면 새 파일을 다시 선택하면 됨.</div>
+
+        <div class="range-field">
+          <label>사진 위치/크기 미세조정</label>
+          <div class="range-row">
+            <span>좌우</span>
+            <input id="photoOffsetX" type="range" min="-350" max="350" value="0" aria-label="사진 좌우 위치" />
+            <span id="photoOffsetXValue">0</span>
+          </div>
+          <div class="range-row">
+            <span>상하</span>
+            <input id="photoOffsetY" type="range" min="-350" max="350" value="0" aria-label="사진 상하 위치" />
+            <span id="photoOffsetYValue">0</span>
+          </div>
+          <div class="range-row">
+            <span>확대</span>
+            <input id="photoScale" type="range" min="100" max="300" value="100" aria-label="사진 확대" />
+            <span id="photoScaleValue">100</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="range-field">
+        <label>이름 위치/크기 미세조정</label>
+        <div class="range-row">
+          <span>좌우</span>
+          <input id="nameOffsetX" type="range" min="-200" max="200" value="0" aria-label="이름 좌우 위치" />
+          <span id="nameOffsetXValue">0</span>
+        </div>
+        <div class="range-row">
+          <span>상하</span>
+          <input id="nameOffsetY" type="range" min="-120" max="120" value="0" aria-label="이름 상하 위치" />
+          <span id="nameOffsetYValue">0</span>
+        </div>
+        <div class="range-row">
+          <span>크기</span>
+          <input id="nameScale" type="range" min="60" max="140" value="100" aria-label="이름 크기" />
+          <span id="nameScaleValue">100</span>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-primary" id="downloadBtn" type="button" disabled>PNG 다운로드</button>
+        <button class="btn-secondary" id="resetBtn" type="button">기본값 복원</button>
+        <button class="btn-secondary" id="saveDraftBtn" type="button">편집파일 저장</button>
+        <button class="btn-secondary" id="openDraftBtn" type="button">편집파일 열기</button>
+        <input id="draftFile" class="hidden" type="file" accept=".json,application/json" aria-label="명함 편집파일" />
+      </div>
+
+      <div class="help" id="draftStatus" role="status" aria-live="polite">이 기기에 자동 저장돼. 공용 기기에서는 사용 후 기본값 복원을 눌러줘.</div>
+      <div class="help">편집파일에는 입력한 연락처와 업로드 이미지가 포함돼. 공식 로고와 기룡이는 원래 비율과 색상을 유지해.</div>
+      <div class="help">
+        Pretendard 적용 / 담당업무 선택 입력 / 글자별 굵기 설정 / 캐릭터·내 사진·이미지 없음 선택 /
+        다운로드 가로폭 직접 입력 / 경기대 저장공간 분리 · 통계 전송 없음.
+      </div>
+    </div>
+
+    <div class="preview">
+      <div class="desktop-preview-content">
+        <p class="preview-title">미리보기</p>
+        <canvas id="canvas" width="2048" height="706" role="img" aria-label="메일 명함 실시간 미리보기"></canvas>
+      </div>
+
+      <!-- 패치 내역은 아래 내용을 직접 수정하거나 항목을 추가하면 됨 -->
+      <div class="patch-notes"><p class="patch-notes-title">경기대학교 에디션 · KGU 1.0</p><p>열린 캠퍼스 · 기룡이 가든 · 블루 리본 · 캠퍼스 포스트</p><p>공식 UI와 기룡이 원본을 사용한 독립 제작 도구입니다. 학교 공식 서비스는 아닙니다.</p><p>공식 로고·캐릭터는 원본 색상과 비율을 유지합니다. 좌우반전·재색상은 적용하지 않습니다. 주변 여백을 확보하고 다른 요소와 겹치지 않게 배치해 주세요.</p><p><a href="SOURCES.md">공식 자산·주소 출처와 사용 지침</a></p><p>가상 예시를 본인 정보로 수정해 주세요. 경기대 전용 의견 수집 연결이 준비되기 전까지 의견 전송은 제공하지 않습니다.</p></div></div></div>
+
+
+
+  <dialog class="reset-dialog" id="resetDialog" aria-labelledby="resetDialogTitle">
+    <div class="reset-dialog-content">
+      <h2 class="reset-dialog-title" id="resetDialogTitle">기본값으로 복원할까?</h2>
+      <p class="reset-dialog-message">현재 작성한 내용과 조정값이 모두 사라져.</p>
+      <div class="btn-row">
+        <button class="btn-secondary" id="cancelResetBtn" type="button">취소</button>
+        <button class="btn-primary" id="confirmResetBtn" type="button">기본값 복원</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="card-templates.js"></script>
+
+  <script src="../dot-picker.js"></script>
+  <script src="draft-storage.js"></script>
+  <script>
+    let FONT_FAMILY = '"Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", Arial, sans-serif';
+
+    const characters = [3,2,4,1,5,6].map(n => ({category:"giryong", label:`기룡이 기본 ${n}`, file:`assets/giryong-${n}.png`}));
+
+    const canvas = document.getElementById("canvas");
+    let ctx = canvas.getContext("2d");
+    const mobileCanvas = document.getElementById("mobileCanvas");
+    const mobileCtx = mobileCanvas.getContext("2d");
+
+    const elTemplateOptions = document.getElementById("templateOptions");
+    const elTemplateStatus = document.getElementById("templateStatus");
+    const elLogoType = document.getElementById("logoType");
+    const elLogoUpload = document.getElementById("logoUpload");
+    const elLogoUploadStatus = document.getElementById("logoUploadStatus");
+    const elLogoOffsetX = document.getElementById("logoOffsetX");
+    const elLogoOffsetY = document.getElementById("logoOffsetY");
+    const elLogoScale = document.getElementById("logoScale");
+    const elLogoColor = document.getElementById("logoColor");
+    const elName = document.getElementById("name");
+    const elTitle = document.getElementById("title");
+    const elTeam = document.getElementById("team");
+    const elWork = document.getElementById("work");
+    const elEmail = document.getElementById("email");
+    const elPhone = document.getElementById("phone");
+    const elAddress = document.getElementById("address");
+    const elExportWidth = document.getElementById("exportWidth");
+    const elEditorMessages = document.getElementById("editorMessages");
+    const elDownloadBtn = document.getElementById("downloadBtn");
+    const elResetBtn = document.getElementById("resetBtn");
+    const elMobilePreview = document.getElementById("mobilePreview");
+    const elPreviewToggle = document.getElementById("previewToggle");
+    const elResetDialog = document.getElementById("resetDialog");
+    const elCancelResetBtn = document.getElementById("cancelResetBtn");
+    const elConfirmResetBtn = document.getElementById("confirmResetBtn");
+
+    const elImageMode = document.getElementById("imageMode");
+    const elCharacterControls = document.getElementById("characterControls");
+    const elPhotoControls = document.getElementById("photoControls");
+
+    const elCategory = document.getElementById("category");
+    const elCharacter = document.getElementById("character");
+    const elCharPreview = document.getElementById("charPreview");
+    const elCharCountInfo = document.getElementById("charCountInfo");
+    const elCharFlip = document.getElementById("charFlip");
+
+    const elPhotoUpload = document.getElementById("photoUpload");
+    const elPhotoPreview = document.getElementById("photoPreview");
+    const elPhotoShape = document.getElementById("photoShape");
+
+    const elBoldName = document.getElementById("boldName");
+    const elBoldTitle = document.getElementById("boldTitle");
+    const elBoldTeam = document.getElementById("boldTeam");
+    const elBoldWork = document.getElementById("boldWork");
+    const elBoldContact = document.getElementById("boldContact");
+    const elBoldAddress = document.getElementById("boldAddress");
+
+    const elNameOffsetX = document.getElementById("nameOffsetX");
+    const elNameOffsetY = document.getElementById("nameOffsetY");
+    const elNameScale = document.getElementById("nameScale");
+    const elNameOffsetXValue = document.getElementById("nameOffsetXValue");
+    const elNameOffsetYValue = document.getElementById("nameOffsetYValue");
+    const elNameScaleValue = document.getElementById("nameScaleValue");
+
+    const elCharOffsetX = document.getElementById("charOffsetX");
+    const elCharOffsetY = document.getElementById("charOffsetY");
+    const elCharScale = document.getElementById("charScale");
+    const elCharOffsetXValue = document.getElementById("charOffsetXValue");
+    const elCharOffsetYValue = document.getElementById("charOffsetYValue");
+    const elCharScaleValue = document.getElementById("charScaleValue");
+
+    const elPhotoOffsetX = document.getElementById("photoOffsetX");
+    const elPhotoOffsetY = document.getElementById("photoOffsetY");
+    const elPhotoScale = document.getElementById("photoScale");
+    const elPhotoOffsetXValue = document.getElementById("photoOffsetXValue");
+    const elPhotoOffsetYValue = document.getElementById("photoOffsetYValue");
+    const elPhotoScaleValue = document.getElementById("photoScaleValue");
+
+    let selectedTemplateId = "default";
+    let templateImg = null;
+    let templateLoadRequestId = 0;
+    let isTemplateLoading = true;
+    let templateError = "";
+    let appReady = false;
+    let selectedCharImg = new Image();
+    let uploadedPhotoImg = null;
+    let uploadedPhotoUrl = null;
+    let uploadedLogoImg = null;
+    let uploadedLogoUrl = null;
+    let logoLoadRequestId = 0;
+    let isLogoLoading = false;
+    let logoError = "";
+    let filteredCharacters = [];
+    let characterLoadRequestId = 0;
+    let isCharacterLoading = false;
+    let characterError = "";
+    let photoLoadRequestId = 0;
+    let isPhotoLoading = false;
+    let drawFrameId = null;
+    let isDownloading = false;
+    let defaultEditorState = null;
+    let lastOverflowFields = [];
+    const logoImages = {};
+    const imageCache = new Map();
+    const trimRectCache = new WeakMap();
+    const tintedLogoCache = new WeakMap();
+
+    const FIELD_LABELS = {
+      name: "이름",
+      title: "직급",
+      team: "소속",
+      work: "담당업무",
+      email: "이메일",
+      phone: "전화번호",
+      address: "주소"
+    };
+
+    function getTemplate() {
+      return CARD_TEMPLATES[selectedTemplateId];
+    }
+
+    function renderTemplateOptions() {
+      Object.values(CARD_TEMPLATES).forEach(template => {
+        const label = document.createElement("label");
+        label.className = "template-option";
+        label.title = template.description;
+
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.name = "cardTemplate";
+        input.value = template.id;
+        input.checked = template.id === selectedTemplateId;
+
+        const card = document.createElement("span");
+        card.className = "template-card";
+        const thumbnail = document.createElement("img");
+        thumbnail.src = template.thumbnail;
+        thumbnail.alt = "";
+        thumbnail.width = 360;
+        thumbnail.height = 124;
+        thumbnail.decoding = "async";
+        const name = document.createElement("span");
+        name.className = "template-card-name";
+        name.textContent = template.name;
+        card.append(thumbnail, name);
+        label.append(input, card);
+        elTemplateOptions.appendChild(label);
+
+        input.addEventListener("change", () => selectTemplate(template.id));
+        // A failed load can be retried by selecting the same radio again.
+        input.addEventListener("click", () => {
+          if (templateError && selectedTemplateId === template.id) selectTemplate(template.id);
+        });
+      });
+    }
+
+    function updateDownloadButton() {
+      elDownloadBtn.disabled = isDownloading || !appReady || isTemplateLoading || Boolean(templateError) ||
+        (elLogoType.value === "custom" && isLogoLoading) ||
+        (elImageMode.value === "character" && (isCharacterLoading || Boolean(characterError))) ||
+        (elImageMode.value === "photo" && isPhotoLoading);
+      document.getElementById("saveDraftBtn").disabled = isLogoLoading || isPhotoLoading || isCharacterLoading;
+    }
+
+    async function selectTemplate(id) {
+      if (!Object.hasOwn(CARD_TEMPLATES, id)) return;
+
+      const requestId = ++templateLoadRequestId;
+      selectedTemplateId = id;
+      isTemplateLoading = true;
+      templateError = "";
+      lastOverflowFields = [];
+      elTemplateOptions.querySelectorAll("input").forEach(input => {
+        input.checked = input.value === id;
+      });
+      elTemplateStatus.textContent = `${getTemplate().name} 불러오는 중…`;
+      elTemplateOptions.setAttribute("aria-busy", "true");
+      updateDownloadButton();
+      renderEditorMessages();
+
+      try {
+        const image = await loadImage(getTemplate().background);
+        if (requestId !== templateLoadRequestId) return;
+
+        templateImg = image;
+        elTemplateStatus.textContent = `${getTemplate().name} · 총 ${Object.keys(CARD_TEMPLATES).length}종`;
+      } catch (err) {
+        if (requestId !== templateLoadRequestId) return;
+        templateError = "디자인을 불러오지 못했어. 해당 디자인을 다시 선택해줘.";
+        elTemplateStatus.textContent = templateError;
+      } finally {
+        if (requestId === templateLoadRequestId) {
+          isTemplateLoading = false;
+          elTemplateOptions.removeAttribute("aria-busy");
+          updateDownloadButton();
+          renderEditorMessages();
+          scheduleDraw();
+        }
+      }
+    }
+
+    function getWeight(checked, bold = 700, normal = 400) {
+      return checked ? bold : normal;
+    }
+
+    function getNameWeight() {
+      return elBoldName.checked ? 800 : 500;
+    }
+
+    function loadImage(src) {
+      if (imageCache.has(src)) {
+        return imageCache.get(src);
+      }
+
+      const imagePromise = new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("이미지 로드 실패: " + src));
+        img.src = src;
+      });
+
+      imageCache.set(src, imagePromise);
+
+      imagePromise.catch(() => {
+        imageCache.delete(src);
+      });
+
+      return imagePromise;
+    }
+
+    function scheduleDraw() {
+      scheduleDraftSave();
+      if (drawFrameId !== null) return;
+
+      drawFrameId = requestAnimationFrame(() => {
+        drawFrameId = null;
+        drawCard();
+      });
+    }
+
+    function flushScheduledDraw() {
+      if (drawFrameId !== null) {
+        cancelAnimationFrame(drawFrameId);
+        drawFrameId = null;
+      }
+
+      drawCard();
+    }
+
+    function setFont(weight, size) {
+      FONT_FAMILY = document.getElementById('textFont').value === 'serif' ? '"Batang", "Georgia", serif' : '"Pretendard", "Malgun Gothic", Arial, sans-serif';
+      ctx.font = `${weight} ${size}px ${FONT_FAMILY}`;
+    }
+
+    function fitFontSize(text, maxWidth, startSize, minSize, weight) {
+      let size = startSize;
+      const safeText = text || "";
+
+      while (size >= minSize) {
+        setFont(weight, size);
+        if (ctx.measureText(safeText).width <= maxWidth) return size;
+        size--;
+      }
+
+      return minSize;
+    }
+
+    function ellipsizeText(text, maxWidth) {
+      const characters = Array.from(text);
+      const ellipsis = "…";
+
+      if (ctx.measureText(ellipsis).width > maxWidth) return "";
+
+      let low = 0;
+      let high = characters.length;
+
+      while (low < high) {
+        const middle = Math.ceil((low + high) / 2);
+        const candidate = characters.slice(0, middle).join("") + ellipsis;
+
+        if (ctx.measureText(candidate).width <= maxWidth) {
+          low = middle;
+        } else {
+          high = middle - 1;
+        }
+      }
+
+      return characters.slice(0, low).join("") + ellipsis;
+    }
+
+    function drawTextOneLine(text, opt, weight, fieldKey) {
+      const finalText = (text || " ").trim() || " ";
+      const size = fitFontSize(finalText, opt.maxWidth, opt.startSize, opt.minSize, weight);
+      setFont(weight, size);
+      const overflow = ctx.measureText(finalText).width > opt.maxWidth;
+      const displayText = overflow ? ellipsizeText(finalText, opt.maxWidth) : finalText;
+
+      ctx.save();
+      ctx.fillStyle = document.getElementById("textColor").value;
+      ctx.textBaseline = "top";
+
+      if (overflow) {
+        ctx.beginPath();
+        ctx.rect(opt.x, opt.y - 2, opt.maxWidth, size * 1.45 + 4);
+        ctx.clip();
+      }
+
+      ctx.fillText(displayText, opt.x, opt.y);
+      const bounds = ctx.measureText(displayText);
+      ctx.restore();
+
+      return {
+        fieldKey,
+        overflow,
+        right: opt.x + bounds.actualBoundingBoxRight,
+        bottom: opt.y + bounds.actualBoundingBoxDescent
+      };
+    }
+
+    function drawNameText(text, opt) {
+      const finalText = (text || " ").trim() || " ";
+      const offsetX = Number(elNameOffsetX.value);
+      const offsetY = Number(elNameOffsetY.value);
+      const scale = Number(elNameScale.value) / 100;
+      const weight = getNameWeight();
+
+      let startSize = opt.startSize;
+      let minSize = opt.minSize;
+      let maxWidth = opt.maxWidth;
+
+      const hasEnglish = /[A-Za-z]/.test(finalText);
+
+      if (hasEnglish) {
+        startSize -= 18;
+        minSize -= 4;
+        maxWidth += 60;
+      } else if (finalText.length >= 4) {
+        startSize -= 12;
+      }
+
+      // Reserve room within the name/title row, then attach the title to the
+      // actual rendered name width instead of leaving a fixed empty gap.
+      if (elTitle.value.trim() && getTemplate().layout.nameTitlePlacement !== "below") {
+        const layout = getTemplate().layout;
+        const titleWeight = getWeight(elBoldTitle.checked, 700, 400);
+        setFont(titleWeight, layout.title.startSize);
+        const titleWidth = Math.min(layout.title.maxWidth, ctx.measureText(elTitle.value.trim()).width);
+        const rowRight = layout.title.x + layout.title.maxWidth;
+        maxWidth = Math.max(1, Math.min(maxWidth, rowRight - opt.x - offsetX - titleWidth - layout.nameTitleGap));
+      }
+
+      return drawTextOneLine(finalText, {
+        ...opt,
+        x: opt.x + offsetX,
+        y: opt.y + offsetY,
+        startSize: Math.round(startSize * scale),
+        minSize: Math.max(18, Math.round(minSize * scale)),
+        maxWidth
+      }, weight, "name");
+    }
+
+    function drawTitleBesideName(nameResult, layout) {
+      const text = elTitle.value.trim();
+      const weight = getWeight(elBoldTitle.checked, 700, 400);
+      if (layout.nameTitlePlacement === "below") {
+        const size = fitFontSize(text, layout.title.maxWidth, layout.title.startSize, layout.title.minSize, weight);
+        setFont(weight, size);
+        ctx.textBaseline = "top";
+        const displayText = ctx.measureText(text).width > layout.title.maxWidth ? ellipsizeText(text, layout.title.maxWidth) : text;
+        const y = nameResult.bottom + layout.nameTitleGap + ctx.measureText(displayText).actualBoundingBoxAscent;
+        return drawTextOneLine(text, { ...layout.title, x: layout.name.x + Number(elNameOffsetX.value), y }, weight, "title");
+      }
+      const x = nameResult.right + layout.nameTitleGap;
+      const maxWidth = Math.max(1, Math.min(layout.title.maxWidth, layout.title.x + layout.title.maxWidth - x));
+      const size = fitFontSize(text, maxWidth, layout.title.startSize, layout.title.minSize, weight);
+      setFont(weight, size);
+      ctx.textBaseline = "top";
+      const displayText = ctx.measureText(text).width > maxWidth ? ellipsizeText(text, maxWidth) : text;
+      const y = nameResult.bottom - ctx.measureText(displayText).actualBoundingBoxDescent;
+
+      return drawTextOneLine(text, { ...layout.title, x, y, maxWidth }, weight, "title");
+    }
+
+    function drawET(opt) {
+      const weight = getWeight(elBoldContact.checked, 700, 400);
+
+      ctx.fillStyle = document.getElementById("textColor").value;
+      ctx.textBaseline = "top";
+      setFont(weight, opt.size);
+      ctx.fillText("E", opt.x, opt.emailY);
+      ctx.fillText("T", opt.x, opt.phoneY);
+    }
+
+    function getTrimRect(img, trimWhite = true) {
+      if (Object.values(logoImages).includes(img)) return {sx:0,sy:0,sw:img.naturalWidth,sh:img.naturalHeight};
+      const cacheKey = trimWhite ? "trimWhite" : "alphaOnly";
+      const cachedRects = trimRectCache.get(img);
+
+      if (cachedRects?.[cacheKey]) {
+        return cachedRects[cacheKey];
+      }
+
+      const tempCanvas = document.createElement("canvas");
+      const tempCtx = tempCanvas.getContext("2d");
+
+      tempCanvas.width = img.width;
+      tempCanvas.height = img.height;
+      tempCtx.drawImage(img, 0, 0);
+
+      const data = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height).data;
+
+      let minX = tempCanvas.width;
+      let minY = tempCanvas.height;
+      let maxX = 0;
+      let maxY = 0;
+      let found = false;
+
+      for (let y = 0; y < tempCanvas.height; y++) {
+        for (let x = 0; x < tempCanvas.width; x++) {
+          const idx = (y * tempCanvas.width + x) * 4;
+          const r = data[idx];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
+          const a = data[idx + 3];
+
+          const transparent = a < 10;
+          const white = trimWhite && r > 248 && g > 248 && b > 248;
+
+          if (!transparent && !white) {
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+            found = true;
+          }
+        }
+      }
+
+      let trimRect;
+
+      if (!found) {
+        trimRect = { sx: 0, sy: 0, sw: img.width, sh: img.height };
+      } else {
+        const padding = 8;
+        minX = Math.max(0, minX - padding);
+        minY = Math.max(0, minY - padding);
+        maxX = Math.min(tempCanvas.width, maxX + padding);
+        maxY = Math.min(tempCanvas.height, maxY + padding);
+
+        trimRect = {
+          sx: minX,
+          sy: minY,
+          sw: maxX - minX,
+          sh: maxY - minY
+        };
+      }
+
+      trimRectCache.set(img, {
+        ...(cachedRects || {}),
+        [cacheKey]: trimRect
+      });
+
+      return trimRect;
+    }
+
+    function drawTrimmedInBox(img, box, trimWhite = true) {
+      const t = getTrimRect(img, trimWhite);
+      const scale = Math.min(box.w / t.sw, box.h / t.sh);
+
+      const drawW = t.sw * scale;
+      const drawH = t.sh * scale;
+      const drawX = box.x + (box.w - drawW) / 2;
+      const drawY = box.y + (box.h - drawH) / 2;
+
+      ctx.drawImage(img, t.sx, t.sy, t.sw, t.sh, drawX, drawY, drawW, drawH);
+    }
+
+    function drawContainTrimmedCharacter(img, box) {
+      const isDot = Boolean(selectedCharacter()?.isDot);
+      const t = { sx: 0, sy: 0, sw: img.naturalWidth, sh: img.naturalHeight };
+
+      const scaleInput = Number(elCharScale.value) / 100;
+      const offsetX = Number(elCharOffsetX.value);
+      const offsetY = Number(elCharOffsetY.value);
+
+      const baseScale = Math.min(box.w / t.sw, box.h / t.sh);
+      const scale = baseScale * scaleInput;
+
+      const drawW = t.sw * scale;
+      const drawH = t.sh * scale;
+        const drawX = Math.max(40, Math.min(canvas.width - drawW - 40, box.x + (box.w - drawW) / 2 + offsetX));
+        const drawY = Math.max(40, Math.min(canvas.height - drawH - 40, box.y + (box.h - drawH) / 2 + offsetY));
+
+      ctx.save();
+      if (isDot) ctx.imageSmoothingEnabled = false;
+      if (false) {
+        ctx.translate(drawX + drawW, drawY);
+        ctx.scale(-1, 1);
+        ctx.drawImage(img, t.sx, t.sy, t.sw, t.sh, 0, 0, drawW, drawH);
+      } else {
+        ctx.drawImage(img, t.sx, t.sy, t.sw, t.sh, drawX, drawY, drawW, drawH);
+      }
+      ctx.restore();
+    }
+
+    function roundedRectPath(context, x, y, width, height, radius) {
+      const safeRadius = Math.min(radius, width / 2, height / 2);
+
+      context.beginPath();
+      context.moveTo(x + safeRadius, y);
+      context.lineTo(x + width - safeRadius, y);
+      context.quadraticCurveTo(x + width, y, x + width, y + safeRadius);
+      context.lineTo(x + width, y + height - safeRadius);
+      context.quadraticCurveTo(x + width, y + height, x + width - safeRadius, y + height);
+      context.lineTo(x + safeRadius, y + height);
+      context.quadraticCurveTo(x, y + height, x, y + height - safeRadius);
+      context.lineTo(x, y + safeRadius);
+      context.quadraticCurveTo(x, y, x + safeRadius, y);
+      context.closePath();
+    }
+
+    function getPhotoClipBox(box, shape) {
+      if (shape !== "circle") return { ...box };
+
+      const size = Math.min(box.w, box.h);
+
+      return {
+        x: box.x + (box.w - size) / 2,
+        y: box.y + (box.h - size) / 2,
+        w: size,
+        h: size
+      };
+    }
+
+    function drawUploadedPhoto(img, box) {
+      if (!img || !img.naturalWidth || !img.naturalHeight) return;
+
+      const shape = elPhotoShape.value;
+      const clipBox = getPhotoClipBox(box, shape);
+      const offsetX = Number(elPhotoOffsetX.value);
+      const offsetY = Number(elPhotoOffsetY.value);
+      const scaleInput = Number(elPhotoScale.value) / 100;
+
+      const baseScale = Math.max(
+        clipBox.w / img.naturalWidth,
+        clipBox.h / img.naturalHeight
+      );
+
+      const scale = baseScale * scaleInput;
+      const drawW = img.naturalWidth * scale;
+      const drawH = img.naturalHeight * scale;
+      const drawX = clipBox.x + (clipBox.w - drawW) / 2 + offsetX;
+      const drawY = clipBox.y + (clipBox.h - drawH) / 2 + offsetY;
+
+      ctx.save();
+
+      if (shape === "circle") {
+        ctx.beginPath();
+        ctx.arc(
+          clipBox.x + clipBox.w / 2,
+          clipBox.y + clipBox.h / 2,
+          clipBox.w / 2,
+          0,
+          Math.PI * 2
+        );
+        ctx.closePath();
+      } else if (shape === "rounded") {
+        roundedRectPath(ctx, clipBox.x, clipBox.y, clipBox.w, clipBox.h, 34);
+      } else {
+        ctx.beginPath();
+        ctx.rect(clipBox.x, clipBox.y, clipBox.w, clipBox.h);
+        ctx.closePath();
+      }
+
+      ctx.clip();
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+      ctx.restore();
+    }
+
+    function drawLogo(layout) {
+      const type = elLogoType.value;
+
+      if (type === "none") return;
+
+      let img = type === "custom" ? uploadedLogoImg : logoImages[type];
+      const baseBox = layout.logos[type] || layout.logos.kyonggi;
+
+      if (!img || !baseBox) return;
+
+      const color = type !== "custom" ? null : elLogoColor.value === "white" ? "#ffffff"
+        : elLogoColor.value === "auto" && type !== "custom" ? layout.logoTint : null;
+      if (color) {
+        let variants = tintedLogoCache.get(img);
+        if (!variants) {
+          variants = new Map();
+          tintedLogoCache.set(img, variants);
+        }
+        if (!variants.has(color)) {
+          const tinted = document.createElement("canvas");
+          tinted.width = img.naturalWidth;
+          tinted.height = img.naturalHeight;
+          const tintCtx = tinted.getContext("2d");
+          tintCtx.drawImage(img, 0, 0);
+          tintCtx.globalCompositeOperation = "source-in";
+          tintCtx.fillStyle = color;
+          tintCtx.fillRect(0, 0, tinted.width, tinted.height);
+          variants.set(color, tinted);
+        }
+        img = variants.get(color);
+      }
+
+      const scale = Number(elLogoScale.value) / 100;
+      const w = baseBox.w * scale;
+      const h = baseBox.h * scale;
+      const box = {
+        x: baseBox.x + (baseBox.w - w) / 2 + Number(elLogoOffsetX.value),
+        y: baseBox.y + (baseBox.h - h) / 2 + Number(elLogoOffsetY.value), w, h
+      };
+
+      if (type === "kyonggi") {
+        box.x = Math.max(40, Math.min(canvas.width - box.w - 40, box.x));
+        box.y = Math.max(40, Math.min(canvas.height - box.h - 40, box.y));
+      }
+
+      drawTrimmedInBox(img, box, false);
+    }
+
+    function updateLogoUI() {
+      elLogoColor.disabled = elLogoType.value !== "custom";
+      document.getElementById("customLogoControls").classList.toggle("hidden", elLogoType.value !== "custom");
+      updateDownloadButton();
+      scheduleDraw();
+    }
+
+    function clearUploadedLogo(clearInput = true) {
+      ++logoLoadRequestId;
+      if (uploadedLogoUrl) URL.revokeObjectURL(uploadedLogoUrl);
+      uploadedLogoUrl = null;
+      uploadedLogoImg = null;
+      isLogoLoading = false;
+      logoError = "";
+      if (clearInput) elLogoUpload.value = "";
+      elLogoUploadStatus.textContent = "PNG·JPG·WEBP, 최대 20MB. 투명 배경 PNG를 권장해.";
+      updateDownloadButton();
+    }
+
+    function handleLogoUpload() {
+      const file = elLogoUpload.files?.[0];
+      if (!file) return;
+      clearUploadedLogo(false);
+      if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 20 * 1024 * 1024) {
+        logoError = "로고는 20MB 이하 PNG·JPG·WEBP 파일을 선택해줘.";
+        elLogoUploadStatus.textContent = logoError;
+        scheduleDraw();
+        return;
+      }
+      const requestId = logoLoadRequestId;
+      const url = URL.createObjectURL(file);
+      uploadedLogoUrl = url;
+      isLogoLoading = true;
+      elLogoUploadStatus.textContent = "로고 불러오는 중…";
+      updateDownloadButton();
+      const img = new Image();
+      img.onload = () => {
+        if (requestId !== logoLoadRequestId) return;
+        uploadedLogoImg = img;
+        isLogoLoading = false;
+        elLogoUploadStatus.textContent = `로고 준비 완료 · ${img.naturalWidth} × ${img.naturalHeight}px`;
+        updateDownloadButton();
+        scheduleDraw();
+      };
+      img.onerror = () => {
+        if (requestId !== logoLoadRequestId) return;
+        clearUploadedLogo();
+        logoError = "로고를 불러오지 못했어. 다른 이미지 파일을 선택해줘.";
+        elLogoUploadStatus.textContent = logoError;
+        scheduleDraw();
+      };
+      img.src = url;
+      scheduleDraw();
+    }
+
+    function drawRightImage(layout) {
+      const mode = elImageMode.value;
+
+      if (mode === "character") {
+        if (selectedCharImg && selectedCharImg.complete && selectedCharImg.naturalWidth > 0) {
+          drawContainTrimmedCharacter(selectedCharImg, layout.characterBox);
+        }
+        return;
+      }
+
+      if (mode === "photo") {
+        drawUploadedPhoto(uploadedPhotoImg, layout.characterBox);
+      }
+    }
+
+    function syncMobilePreview() {
+      if (!window.matchMedia("(max-width: 560px)").matches) return;
+
+      mobileCtx.clearRect(0, 0, mobileCanvas.width, mobileCanvas.height);
+      mobileCtx.drawImage(canvas, 0, 0);
+    }
+
+    function collectValidationIssues() {
+      const errors = [];
+      const warnings = [];
+
+      if (elImageMode.value === "character" && characterError) {
+        errors.push({ field: elCharacter, message: characterError });
+      }
+      if (templateError) {
+        errors.push({ field: elTemplateOptions.querySelector("input:checked"), message: templateError });
+      }
+
+      if (elLogoType.value === "custom" && !uploadedLogoImg) {
+        errors.push({ field: elLogoUpload, message: logoError || "직접 넣을 로고 파일을 선택해줘." });
+      }
+
+      if (!elName.value.trim()) {
+        errors.push({ field: elName, message: "이름을 입력해줘." });
+      }
+
+      if (!elEmail.value.trim()) {
+        errors.push({ field: elEmail, message: "이메일을 입력해줘." });
+      } else if (elEmail.validity.typeMismatch) {
+        errors.push({ field: elEmail, message: "이메일 형식을 확인해줘." });
+      }
+
+      const uniqueOverflowFields = [...new Set(lastOverflowFields)];
+
+      if (uniqueOverflowFields.length) {
+        const labels = uniqueOverflowFields.map(field => FIELD_LABELS[field]).join(", ");
+        warnings.push(`${labels} 값이 명함 영역보다 길어 PNG에서는 말줄임표로 표시돼.`);
+      }
+
+      elName.setAttribute("aria-invalid", String(!elName.value.trim()));
+      elEmail.setAttribute(
+        "aria-invalid",
+        String(!elEmail.value.trim() || elEmail.validity.typeMismatch)
+      );
+
+      return { errors, warnings };
+    }
+
+    function renderEditorMessages(issues = collectValidationIssues()) {
+      elEditorMessages.replaceChildren();
+      elEditorMessages.classList.toggle("hidden", !issues.errors.length && !issues.warnings.length);
+      elEditorMessages.classList.toggle("has-error", issues.errors.length > 0);
+
+      if (!issues.errors.length && !issues.warnings.length) return;
+
+      const title = document.createElement("strong");
+      title.textContent = issues.errors.length
+        ? "다운로드 전에 확인해줘"
+        : "텍스트 길이 안내";
+
+      const list = document.createElement("ul");
+
+      [...issues.errors, ...issues.warnings].forEach(issue => {
+        const item = document.createElement("li");
+        item.textContent = typeof issue === "string" ? issue : issue.message;
+        list.appendChild(item);
+      });
+
+      elEditorMessages.append(title, list);
+    }
+
+    function drawCard() {
+      if (!appReady || isTemplateLoading || templateError || !templateImg?.naturalWidth) return;
+
+      lastOverflowFields = renderCard(canvas);
+      syncMobilePreview();
+      renderEditorMessages();
+    }
+
+    // Preview and export share coordinates and layout. Text and source images
+    // are drawn at the target resolution instead of enlarging a preview bitmap.
+    function renderCard(targetCanvas) {
+      const previousCtx = ctx;
+      ctx = targetCanvas.getContext("2d");
+      ctx.save();
+      try {
+        ctx.setTransform(targetCanvas.width / canvas.width, 0, 0, targetCanvas.height / canvas.height, 0, 0);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        return drawCardContent();
+      } finally {
+        ctx.restore();
+        ctx = previousCtx;
+      }
+    }
+
+    function drawCardContent() {
+      const layout = getTemplate().layout;
+      const hasWork = elWork.value.trim().length > 0;
+      const teamConfig = hasWork ? layout.teamWithWork : layout.teamWithoutWork;
+      let addressConfig = hasWork ? layout.addressWithWork : layout.addressWithoutWork;
+      const imageBox = layout.characterBox;
+      const hasRightImage = elImageMode.value === "character"
+        ? Boolean(selectedCharImg?.naturalWidth)
+        : elImageMode.value === "photo" && Boolean(uploadedPhotoImg?.naturalWidth);
+      // Gold's address area extends into the portrait area in the manifest.
+      // Apply the existing shrink/ellipsis safety within the available space.
+      if (selectedTemplateId !== "default" && hasRightImage &&
+          addressConfig.y < imageBox.y + imageBox.h &&
+          addressConfig.y + addressConfig.startSize * 1.45 > imageBox.y &&
+          addressConfig.x < imageBox.x) {
+        addressConfig = {
+          ...addressConfig,
+          maxWidth: Math.min(addressConfig.maxWidth, imageBox.x - addressConfig.x - 24)
+        };
+      }
+      const textResults = [];
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
+
+      drawLogo(layout);
+      const nameResult = drawNameText(elName.value, layout.name);
+      textResults.push(nameResult);
+      textResults.push(drawTitleBesideName(nameResult, layout));
+
+      textResults.push(drawTextOneLine(
+        elTeam.value,
+        teamConfig,
+        getWeight(elBoldTeam.checked, 700, 400),
+        "team"
+      ));
+
+      if (hasWork) {
+        textResults.push(drawTextOneLine(
+          elWork.value,
+          layout.work,
+          getWeight(elBoldWork.checked, 600, 400),
+          "work"
+        ));
+      }
+
+      drawET(layout.et);
+
+      textResults.push(drawTextOneLine(
+        elEmail.value,
+        layout.email,
+        getWeight(elBoldContact.checked, 700, 400),
+        "email"
+      ));
+
+      textResults.push(drawTextOneLine(
+        elPhone.value,
+        layout.phone,
+        getWeight(elBoldContact.checked, 700, 400),
+        "phone"
+      ));
+
+      textResults.push(drawTextOneLine(
+        elAddress.value,
+        addressConfig,
+        getWeight(elBoldAddress.checked, 700, 400),
+        "address"
+      ));
+
+      drawRightImage(layout);
+      return textResults
+        .filter(result => result?.overflow)
+        .map(result => result.fieldKey);
+    }
+
+    function refreshCharacterOptions(keepFile = null) {
+      const category = elCategory.value;
+
+      filteredCharacters = characters.filter(char => {
+        return category === "all" || char.category === category;
+      });
+
+      elCharacter.replaceChildren();
+      const emptyOption = document.createElement("option");
+      emptyOption.value = "";
+      emptyOption.textContent = "선택 안 함";
+      elCharacter.appendChild(emptyOption);
+
+      filteredCharacters.forEach((char, index) => {
+        const option = document.createElement("option");
+        option.value = char.file;
+        option.textContent = char.label;
+
+        if (keepFile !== null && char.file === keepFile) {
+          option.selected = true;
+        } else if (keepFile === null && index === 0) {
+          option.selected = true;
+        }
+
+        elCharacter.appendChild(option);
+      });
+
+      if (keepFile === "") elCharacter.value = "";
+      elCharCountInfo.textContent =
+        `현재 분류 ${filteredCharacters.length}종 / 전체 ${characters.length}종`;
+      refreshDotThumbnails();
+    }
+
+    async function updateCharacterAndDraw() {
+      const requestId = ++characterLoadRequestId;
+      const src = elCharacter.value;
+      selectedCharImg = null;
+      characterError = "";
+      isCharacterLoading = Boolean(src);
+      elCharPreview.removeAttribute("src");
+      syncDotSelection();
+      updateDownloadButton();
+      document.getElementById("characterStatus").textContent = src ? "캐릭터 불러오는 중…" : "캐릭터 선택을 해제했어.";
+      scheduleDraw();
+      try {
+        if (!src) return;
+        const image = await loadImage(src);
+        if (requestId !== characterLoadRequestId || elCharacter.value !== src) return;
+        selectedCharImg = image;
+        elCharPreview.src = src;
+        document.getElementById("characterStatus").textContent = `${selectedCharacter().label} 선택됨`;
+      } catch (err) {
+        if (requestId !== characterLoadRequestId) return;
+        characterError = "캐릭터를 불러오지 못했어. 포즈를 다시 선택해줘.";
+        document.getElementById("characterStatus").textContent = characterError;
+      } finally {
+        if (requestId === characterLoadRequestId) {
+          isCharacterLoading = false;
+          updateDownloadButton();
+          scheduleDraw();
+        }
+      }
+    }
+
+    function moveCharacter(direction) {
+      if (!filteredCharacters.length) return;
+
+      let index = filteredCharacters.findIndex(char => char.file === elCharacter.value);
+
+      if (index < 0) index = 0;
+
+      index += direction;
+
+      if (index < 0) index = filteredCharacters.length - 1;
+      if (index >= filteredCharacters.length) index = 0;
+
+      elCharacter.value = filteredCharacters[index].file;
+      updateCharacterAndDraw();
+    }
+
+    function updateImageModeUI() {
+      const mode = elImageMode.value;
+
+      elCharacterControls.classList.toggle("hidden", mode !== "character");
+      elPhotoControls.classList.toggle("hidden", mode !== "photo");
+      updateDownloadButton();
+
+      scheduleDraw();
+    }
+
+    function clearUploadedPhoto() {
+      ++photoLoadRequestId;
+      isPhotoLoading = false;
+      uploadedPhotoImg = null;
+      elPhotoUpload.value = "";
+      elPhotoPreview.removeAttribute("src");
+
+      if (uploadedPhotoUrl) {
+        URL.revokeObjectURL(uploadedPhotoUrl);
+        uploadedPhotoUrl = null;
+      }
+      updateDownloadButton();
+    }
+
+    function handlePhotoUpload() {
+      const file = elPhotoUpload.files?.[0];
+      const requestId = ++photoLoadRequestId;
+
+      if (!file) {
+        clearUploadedPhoto();
+        scheduleDraw();
+        return;
+      }
+
+      const allowedTypes = ["image/png", "image/jpeg", "image/webp"];
+
+      if (!allowedTypes.includes(file.type)) {
+        alert("PNG, JPG, JPEG, WEBP 이미지 파일만 선택할 수 있어.");
+        clearUploadedPhoto();
+        scheduleDraw();
+        return;
+      }
+
+      const maxFileSize = 20 * 1024 * 1024;
+
+      if (file.size > maxFileSize) {
+        alert("사진 파일은 20MB 이하만 사용할 수 있어.");
+        clearUploadedPhoto();
+        scheduleDraw();
+        return;
+      }
+
+      if (uploadedPhotoUrl) {
+        URL.revokeObjectURL(uploadedPhotoUrl);
+      }
+
+      uploadedPhotoUrl = URL.createObjectURL(file);
+      uploadedPhotoImg = null;
+      isPhotoLoading = true;
+      updateDownloadButton();
+
+      const image = new Image();
+
+      image.onload = () => {
+        if (requestId !== photoLoadRequestId) return;
+        isPhotoLoading = false;
+        updateDownloadButton();
+        uploadedPhotoImg = image;
+        elPhotoPreview.src = uploadedPhotoUrl;
+        scheduleDraw();
+      };
+
+      image.onerror = () => {
+        if (requestId !== photoLoadRequestId) return;
+        isPhotoLoading = false;
+        updateDownloadButton();
+        alert("사진을 불러오지 못했어. 다른 이미지 파일로 다시 시도해봐.");
+        clearUploadedPhoto();
+        scheduleDraw();
+      };
+
+      image.src = uploadedPhotoUrl;
+    }
+
+    function updateRangeLabels() {
+      document.getElementById("logoOffsetXValue").textContent = elLogoOffsetX.value;
+      document.getElementById("logoOffsetYValue").textContent = elLogoOffsetY.value;
+      document.getElementById("logoScaleValue").textContent = elLogoScale.value;
+      elNameOffsetXValue.textContent = elNameOffsetX.value;
+      elNameOffsetYValue.textContent = elNameOffsetY.value;
+      elNameScaleValue.textContent = elNameScale.value;
+
+      elCharOffsetXValue.textContent = elCharOffsetX.value;
+      elCharOffsetYValue.textContent = elCharOffsetY.value;
+      elCharScaleValue.textContent = elCharScale.value;
+
+      elPhotoOffsetXValue.textContent = elPhotoOffsetX.value;
+      elPhotoOffsetYValue.textContent = elPhotoOffsetY.value;
+      elPhotoScaleValue.textContent = elPhotoScale.value;
+    }
+
+    function getExportWidth() {
+      const rawValue = Number(elExportWidth.value);
+      const fallback = 750;
+
+      if (!Number.isFinite(rawValue) || rawValue <= 0) {
+        return fallback;
+      }
+
+      return Math.min(Math.max(Math.round(rawValue), 100), 5000);
+    }
+
+    function getSelectedImageLabel() {
+      const mode = elImageMode.value;
+
+      if (mode === "character") {
+        return elCharacter.options[elCharacter.selectedIndex]?.textContent || "";
+      }
+
+      if (mode === "photo") {
+        return uploadedPhotoImg ? "uploaded_photo" : "photo_not_selected";
+      }
+
+      return "none";
+    }
+
+    function trackDownloadEvent() { /* This edition intentionally sends no analytics. */ }
+
+    function canvasToBlob(sourceCanvas) {
+      return new Promise((resolve, reject) => {
+        sourceCanvas.toBlob(blob => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error("PNG Blob 생성 실패"));
+          }
+        }, "image/png");
+      });
+    }
+
+    async function downloadPNG() {
+      if (elDownloadBtn.disabled) return;
+
+      flushScheduledDraw();
+
+      const issues = collectValidationIssues();
+      renderEditorMessages(issues);
+
+      if (issues.errors.length) {
+        issues.errors[0].field.focus();
+        return;
+      }
+
+      const exportWidth = getExportWidth();
+      isDownloading = true;
+      elDownloadBtn.disabled = true;
+      elDownloadBtn.textContent = "PNG 생성 중...";
+      elDownloadBtn.setAttribute("aria-busy", "true");
+
+      try {
+        trackDownloadEvent(exportWidth);
+
+        const exportHeight = Math.round(canvas.height * (exportWidth / canvas.width));
+
+        const outputCanvas = document.createElement("canvas");
+        outputCanvas.width = exportWidth;
+        outputCanvas.height = exportHeight;
+
+        renderCard(outputCanvas);
+
+        const blob = await canvasToBlob(outputCanvas);
+        const objectUrl = URL.createObjectURL(blob);
+        const fileBase = (elName.value || "mail-card").trim().replace(/\s+/g, "_");
+
+        const link = document.createElement("a");
+        link.download = `${fileBase}_메일명함_${exportWidth}px.png`;
+        link.href = objectUrl;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      } catch (err) {
+        console.error(err);
+        alert("PNG를 만들지 못했어. 잠시 후 다시 시도해줘.");
+      } finally {
+        isDownloading = false;
+        updateDownloadButton();
+        elDownloadBtn.textContent = "PNG 다운로드";
+        elDownloadBtn.removeAttribute("aria-busy");
+      }
+    }
+
+    function getEditorState() {
+      return JSON.stringify({
+        templateId: selectedTemplateId,
+          campus: document.getElementById("campus").value, textFont: document.getElementById("textFont").value, textColor: document.getElementById("textColor").value,
+        logoType: elLogoType.value,
+        logoOffsetX: elLogoOffsetX.value,
+        logoOffsetY: elLogoOffsetY.value,
+        logoScale: elLogoScale.value,
+        logoColor: elLogoColor.value,
+        hasLogo: Boolean(uploadedLogoImg),
+        logoRevision: draftImageIdentity(uploadedLogoImg),
+        name: elName.value,
+        title: elTitle.value,
+        team: elTeam.value,
+        work: elWork.value,
+        email: elEmail.value,
+        phone: elPhone.value,
+        address: elAddress.value,
+        exportWidth: elExportWidth.value,
+        boldName: elBoldName.checked,
+        boldTitle: elBoldTitle.checked,
+        boldTeam: elBoldTeam.checked,
+        boldWork: elBoldWork.checked,
+        boldContact: elBoldContact.checked,
+        boldAddress: elBoldAddress.checked,
+        imageMode: elImageMode.value,
+        category: elCategory.value,
+        character: elCharacter.value,
+        nameOffsetX: elNameOffsetX.value,
+        nameOffsetY: elNameOffsetY.value,
+        nameScale: elNameScale.value,
+        charOffsetX: elCharOffsetX.value,
+        charOffsetY: elCharOffsetY.value,
+        charScale: elCharScale.value,
+        charFlip: elCharFlip.checked,
+        photoShape: elPhotoShape.value,
+        photoOffsetX: elPhotoOffsetX.value,
+        photoOffsetY: elPhotoOffsetY.value,
+        photoScale: elPhotoScale.value,
+        hasPhoto: Boolean(uploadedPhotoImg),
+        photoRevision: draftImageIdentity(uploadedPhotoImg)
+      });
+    }
+
+    function handleResetDefaults() {
+      const hasChanges = defaultEditorState !== null && getEditorState() !== defaultEditorState;
+
+      if (hasChanges) {
+        elResetDialog.showModal();
+        return;
+      }
+
+      resetDefaults();
+    }
+
+    function resetDefaults() {
+      clearLocalDraft();
+      selectTemplate("default");
+      elLogoType.value = "kyonggi";
+      clearUploadedLogo();
+      elLogoOffsetX.value = 0;
+      elLogoOffsetY.value = 0;
+      elLogoScale.value = 100;
+      elLogoColor.value = "auto";
+      updateLogoUI();
+
+      elName.value = "김경기 (예시)";
+      elTitle.value = "담당 (예시)";
+      elTeam.value = "경기대학교 | 예시부서";
+      elWork.value = "";
+      elEmail.value = "example@example.com";
+      elPhone.value = "000-0000-0000";
+      elAddress.value = "(16227) 경기도 수원시 영통구 광교산로 154-42";
+      elExportWidth.value = 750;
+
+      elBoldName.checked = true;
+      elBoldTitle.checked = true;
+      elBoldTeam.checked = true;
+      elBoldWork.checked = false;
+      elBoldContact.checked = true;
+      elBoldAddress.checked = true;
+
+      elImageMode.value = "character";
+
+      elCategory.value = "all";
+      refreshCharacterOptions();
+
+      elNameOffsetX.value = 0;
+      elNameOffsetY.value = 0;
+      elNameScale.value = 100;
+
+      elCharOffsetX.value = 0;
+      elCharOffsetY.value = 0;
+      elCharScale.value = 100;
+      elCharFlip.checked = false;
+
+      clearUploadedPhoto();
+      elPhotoShape.value = "rounded";
+      elPhotoOffsetX.value = 0;
+      elPhotoOffsetY.value = 0;
+      elPhotoScale.value = 100;
+
+      updateRangeLabels();
+      updateImageModeUI();
+      updateCharacterAndDraw();
+      scheduleDraw();
+    }
+
+    function bindEvents() {
+      document.getElementById('campus').addEventListener('change', e => { elAddress.value = e.target.value === 'seoul' ? '(03746) 서울특별시 서대문구 경기대로 9길 24' : '(16227) 경기도 수원시 영통구 광교산로 154-42'; scheduleDraw(); });
+      ['textFont','textColor'].forEach(id => document.getElementById(id).addEventListener('input',scheduleDraw));
+      [elName, elTitle, elTeam, elWork, elEmail, elPhone, elAddress].forEach(element => {
+        element.addEventListener("input", scheduleDraw);
+      });
+
+      [elBoldName, elBoldTitle, elBoldTeam, elBoldWork, elBoldContact, elBoldAddress].forEach(element => {
+        element.addEventListener("change", scheduleDraw);
+      });
+
+      elLogoType.addEventListener("change", updateLogoUI);
+      elLogoUpload.addEventListener("change", handleLogoUpload);
+      elLogoColor.addEventListener("change", scheduleDraw);
+      document.getElementById("resetLogoPlacement").addEventListener("click", () => {
+        elLogoOffsetX.value = 0;
+        elLogoOffsetY.value = 0;
+        elLogoScale.value = 100;
+        updateRangeLabels();
+        scheduleDraw();
+      });
+      elImageMode.addEventListener("change", updateImageModeUI);
+
+      elCategory.addEventListener("change", () => {
+        refreshCharacterOptions();
+        updateCharacterAndDraw();
+      });
+
+      elCharacter.addEventListener("change", updateCharacterAndDraw);
+      elCharFlip.addEventListener("change", () => { syncDotSelection(); scheduleDraw(); });
+      document.getElementById("clearCharacterBtn").addEventListener("click", () => {
+        elCharacter.value = "";
+        updateCharacterAndDraw();
+      });
+
+      document.getElementById("prevBtn").addEventListener("click", () => moveCharacter(-1));
+      document.getElementById("nextBtn").addEventListener("click", () => moveCharacter(1));
+
+      elPhotoUpload.addEventListener("change", handlePhotoUpload);
+      elPhotoShape.addEventListener("change", scheduleDraw);
+
+      [
+        elLogoOffsetX,
+        elLogoOffsetY,
+        elLogoScale,
+        elNameOffsetX,
+        elNameOffsetY,
+        elNameScale,
+        elCharOffsetX,
+        elCharOffsetY,
+        elCharScale,
+        elPhotoOffsetX,
+        elPhotoOffsetY,
+        elPhotoScale
+      ].forEach(element => {
+        element.addEventListener("input", () => {
+          updateRangeLabels();
+          scheduleDraw();
+        });
+      });
+
+      elDownloadBtn.addEventListener("click", downloadPNG);
+      elResetBtn.addEventListener("click", handleResetDefaults);
+      elCancelResetBtn.addEventListener("click", () => elResetDialog.close());
+      elConfirmResetBtn.addEventListener("click", () => {
+        elResetDialog.close();
+        resetDefaults();
+      });
+
+      elPreviewToggle.addEventListener("click", () => {
+        const isCollapsed = elMobilePreview.classList.toggle("is-collapsed");
+        elPreviewToggle.setAttribute("aria-expanded", String(!isCollapsed));
+        elPreviewToggle.textContent = isCollapsed ? "미리보기 펼치기" : "미리보기 접기";
+      });
+
+      window.addEventListener("resize", scheduleDraw);
+
+      window.addEventListener("beforeunload", () => {
+        if (uploadedLogoUrl) URL.revokeObjectURL(uploadedLogoUrl);
+        if (uploadedPhotoUrl) {
+          URL.revokeObjectURL(uploadedPhotoUrl);
+        }
+      });
+    }
+
+    async function init() {
+      document.querySelector(".version-badge").textContent = APP_VERSION;
+      renderTemplateOptions();
+      bindEvents();
+      bindDraftEvents();
+      refreshCharacterOptions();
+      updateRangeLabels();
+      updateImageModeUI();
+
+      defaultEditorState = getEditorState();
+
+      await Promise.all([
+        selectTemplate("default"),
+        ...Object.entries(CARD_TEMPLATES.default.layout.logos).map(async ([type, logo]) => {
+          logoImages[type] = await loadImage(logo.src);
+        }),
+        updateCharacterAndDraw()
+      ]);
+
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+
+      await restoreLocalDraft();
+      appReady = true;
+      updateDownloadButton();
+      flushScheduledDraw();
+    }
+
+    init().catch(err => {
+      console.error(err);
+      alert("초기화 실패. assets/template.png, 로고, 캐릭터 파일 경로를 확인해봐.");
+    });
+  </script>
+</body>
+</html>
