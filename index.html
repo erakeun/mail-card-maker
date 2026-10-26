@@ -595,6 +595,13 @@
 .mach-home-link:focus-visible{outline:3px solid #165dcb;outline-offset:3px}
 @media print{.mach-home-nav{display:none!important}}
 </style>
+
+<style id="mach-feedback-style">
+.mach-feedback-link{display:inline-flex;align-items:center;justify-content:center;min-height:44px;max-width:100%;padding:8px 14px;box-sizing:border-box;border:1px solid #b6c7dd;border-radius:8px;background:#fff;color:#145cbd;font:inherit;line-height:1.4;text-align:center;text-decoration:underline}
+.mach-feedback-link:focus-visible{outline:3px solid #165dcb;outline-offset:3px}
+@media print{.mach-feedback-link,[data-mach-feedback-container]{display:none!important}}
+.mach-home-nav{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+</style>
 </head>
 
 <body>
@@ -604,6 +611,7 @@
   <a class="mach-home-link" href="https://erakeun.github.io/ERICAAI/" aria-label="MACH 홈으로 이동">
     <img src="assets/mach-selected-A.svg" alt="PROJECT MACH" decoding="async">
   </a>
+  <a class="mach-feedback-link" data-mach-feedback="01" href="https://script.google.com/macros/s/AKfycby2ShSY4ruQr9Ku-QlljB05Ygk3ygDRtX-hXWO0hfUmEULl-jK9Z7mqh_k2m9GSV70v/exec?tool=01" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">의견 보내기 (새 창)</a>
 </div>
       <div class="editor-heading">
         <h1>메일 명함 생성기</h1>
