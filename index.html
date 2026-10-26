@@ -87,6 +87,15 @@
       margin-bottom: 14px;
     }
 
+    .dot-thumbnails { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:300px;overflow:auto;margin:12px 0;padding:4px; }
+    .dot-pose { display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px;border:2px solid #d0d7de;background:#fff;font-size:11px;line-height:1.4;word-break:keep-all; }
+    .dot-pose img { width:72px;height:72px;object-fit:contain;image-rendering:pixelated; }
+    .dot-pose[aria-pressed="true"] { border-color:#0f4c81;background:#eef5fb; }
+    .pixel-art { image-rendering:pixelated; }
+    .flip-option { display:flex;align-items:center;gap:8px;min-height:44px; }
+    .flip-option input { width:18px;height:18px; }
+    .dot-thumbnails.hidden { display:none; }
+
     .template-picker {
       min-width: 0;
       margin: 0 0 14px;
@@ -752,6 +761,8 @@
               <option value="hibibi">하이비비</option>
               <option value="hylion">하이리온</option>
               <option value="hynari">하이나리</option>
+              <option value="dot-hanyangi">도트 하냥이 (41종)</option>
+              <option value="dot-hibibi">도트 하이비비 (24종)</option>
             </select>
           </div>
 
@@ -771,6 +782,11 @@
         </div>
 
         <div class="help" id="charCountInfo"></div>
+        <div id="dotThumbnails" class="dot-thumbnails hidden" role="group" aria-label="도트 포즈 선택"></div>
+        <div class="help" id="characterStatus" role="status" aria-live="polite"></div>
+        <button id="clearCharacterBtn" class="btn-secondary" type="button">캐릭터 선택 해제</button>
+        <label class="flip-option"><input id="charFlip" type="checkbox"> 캐릭터 좌우반전</label>
+        <div class="help hidden" id="charFlipWarning" role="status"></div>
 
         <div class="range-field">
           <label>캐릭터 위치/크기 미세조정</label>
@@ -803,7 +819,7 @@
             accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
           />
           <div class="privacy-note">
-            선택한 사진 파일은 서버에 업로드되거나 저장되지 않고, 현재 브라우저에서 명함 제작에만 사용됨.
+            선택한 사진은 서버에 업로드하지 않고 이 기기에 명함과 함께 자동 저장돼. 편집파일에도 포함돼.
             사진 파일명과 사진 내용은 다운로드 통계에도 포함되지 않음.
           </div>
         </div>
@@ -865,8 +881,13 @@
       <div class="btn-row">
         <button class="btn-primary" id="downloadBtn" type="button" disabled>PNG 다운로드</button>
         <button class="btn-secondary" id="resetBtn" type="button">기본값 복원</button>
+        <button class="btn-secondary" id="saveDraftBtn" type="button">편집파일 저장</button>
+        <button class="btn-secondary" id="openDraftBtn" type="button">편집파일 열기</button>
+        <input id="draftFile" class="hidden" type="file" accept=".json,application/json" aria-label="명함 편집파일" />
       </div>
 
+      <div class="help" id="draftStatus" role="status" aria-live="polite">이 기기에 자동 저장돼. 공용 기기에서는 사용 후 기본값 복원을 눌러줘.</div>
+      <div class="help">편집파일에는 입력한 연락처와 업로드 이미지가 포함돼. 도트는 투명 배경과 원래 비율을 유지하며 PNG 출력에 픽셀 보간을 사용하지 않아.</div>
       <div class="help">
         Pretendard 적용 / 담당업무 선택 입력 / 글자별 굵기 설정 / 캐릭터·내 사진·이미지 없음 선택 /
         다운로드 가로폭 직접 입력 / 다운로드 이벤트 추적 포함.
@@ -928,6 +949,9 @@
   </dialog>
 
   <script src="card-templates.js"></script>
+  <script src="dot-characters.js"></script>
+  <script src="dot-picker.js"></script>
+  <script src="draft-storage.js"></script>
   <script>
     const FONT_FAMILY = '"Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", Arial, sans-serif';
 
@@ -984,7 +1008,7 @@
         });
       }
 
-      return list;
+      return list.concat((window.DOT_CHARACTERS || []).map(character => ({ ...character, isDot: true })));
     }
 
     const characters = makeCharacters();
@@ -1028,6 +1052,7 @@
     const elCharacter = document.getElementById("character");
     const elCharPreview = document.getElementById("charPreview");
     const elCharCountInfo = document.getElementById("charCountInfo");
+    const elCharFlip = document.getElementById("charFlip");
 
     const elPhotoUpload = document.getElementById("photoUpload");
     const elPhotoPreview = document.getElementById("photoPreview");
@@ -1077,6 +1102,10 @@
     let logoError = "";
     let filteredCharacters = [];
     let characterLoadRequestId = 0;
+    let isCharacterLoading = false;
+    let characterError = "";
+    let photoLoadRequestId = 0;
+    let isPhotoLoading = false;
     let drawFrameId = null;
     let isDownloading = false;
     let defaultEditorState = null;
@@ -1137,7 +1166,10 @@
 
     function updateDownloadButton() {
       elDownloadBtn.disabled = isDownloading || !appReady || isTemplateLoading || Boolean(templateError) ||
-        (elLogoType.value === "custom" && isLogoLoading);
+        (elLogoType.value === "custom" && isLogoLoading) ||
+        (elImageMode.value === "character" && (isCharacterLoading || Boolean(characterError))) ||
+        (elImageMode.value === "photo" && isPhotoLoading);
+      document.getElementById("saveDraftBtn").disabled = isLogoLoading || isPhotoLoading || isCharacterLoading;
     }
 
     async function selectTemplate(id) {
@@ -1207,6 +1239,7 @@
     }
 
     function scheduleDraw() {
+      scheduleDraftSave();
       if (drawFrameId !== null) return;
 
       drawFrameId = requestAnimationFrame(() => {
@@ -1451,7 +1484,8 @@
     }
 
     function drawContainTrimmedCharacter(img, box) {
-      const t = getTrimRect(img, true);
+      const isDot = Boolean(selectedCharacter()?.isDot);
+      const t = isDot ? { sx: 0, sy: 0, sw: img.naturalWidth, sh: img.naturalHeight } : getTrimRect(img, true);
 
       const scaleInput = Number(elCharScale.value) / 100;
       const offsetX = Number(elCharOffsetX.value);
@@ -1465,7 +1499,16 @@
       const drawX = box.x + (box.w - drawW) / 2 + offsetX;
       const drawY = box.y + (box.h - drawH) / 2 + offsetY;
 
-      ctx.drawImage(img, t.sx, t.sy, t.sw, t.sh, drawX, drawY, drawW, drawH);
+      ctx.save();
+      if (isDot) ctx.imageSmoothingEnabled = false;
+      if (elCharFlip.checked) {
+        ctx.translate(drawX + drawW, drawY);
+        ctx.scale(-1, 1);
+        ctx.drawImage(img, t.sx, t.sy, t.sw, t.sh, 0, 0, drawW, drawH);
+      } else {
+        ctx.drawImage(img, t.sx, t.sy, t.sw, t.sh, drawX, drawY, drawW, drawH);
+      }
+      ctx.restore();
     }
 
     function roundedRectPath(context, x, y, width, height, radius) {
@@ -1665,6 +1708,9 @@
       const errors = [];
       const warnings = [];
 
+      if (elImageMode.value === "character" && characterError) {
+        errors.push({ field: elCharacter, message: characterError });
+      }
       if (templateError) {
         errors.push({ field: elTemplateOptions.querySelector("input:checked"), message: templateError });
       }
@@ -1829,49 +1875,59 @@
         return category === "all" || char.category === category;
       });
 
-      elCharacter.innerHTML = "";
+      elCharacter.replaceChildren();
+      const emptyOption = document.createElement("option");
+      emptyOption.value = "";
+      emptyOption.textContent = "선택 안 함";
+      elCharacter.appendChild(emptyOption);
 
       filteredCharacters.forEach((char, index) => {
         const option = document.createElement("option");
         option.value = char.file;
         option.textContent = char.label;
 
-        if (keepFile && char.file === keepFile) {
+        if (keepFile !== null && char.file === keepFile) {
           option.selected = true;
-        } else if (!keepFile && index === 0) {
+        } else if (keepFile === null && index === 0) {
           option.selected = true;
         }
 
         elCharacter.appendChild(option);
       });
 
+      if (keepFile === "") elCharacter.value = "";
       elCharCountInfo.textContent =
-        `현재 분류 ${filteredCharacters.length}종 / 전체 ${characters.length}종`;
+        `현재 분류 ${filteredCharacters.length}종 / 전체 ${characters.length}종 (도트 65종 포함)`;
+      refreshDotThumbnails();
     }
 
     async function updateCharacterAndDraw() {
       const requestId = ++characterLoadRequestId;
-
+      const src = elCharacter.value;
+      selectedCharImg = null;
+      characterError = "";
+      isCharacterLoading = Boolean(src);
+      elCharPreview.removeAttribute("src");
+      syncDotSelection();
+      updateDownloadButton();
+      document.getElementById("characterStatus").textContent = src ? "캐릭터 불러오는 중…" : "캐릭터 선택을 해제했어.";
+      scheduleDraw();
       try {
-        const src = elCharacter.value;
-
-        if (!src) {
-          selectedCharImg = null;
-          elCharPreview.removeAttribute("src");
-          scheduleDraw();
-          return;
-        }
-
+        if (!src) return;
         const image = await loadImage(src);
-
         if (requestId !== characterLoadRequestId || elCharacter.value !== src) return;
-
         selectedCharImg = image;
         elCharPreview.src = src;
-        scheduleDraw();
+        document.getElementById("characterStatus").textContent = `${selectedCharacter().label} 선택됨`;
       } catch (err) {
+        if (requestId !== characterLoadRequestId) return;
+        characterError = "캐릭터를 불러오지 못했어. 포즈를 다시 선택해줘.";
+        document.getElementById("characterStatus").textContent = characterError;
+      } finally {
         if (requestId === characterLoadRequestId) {
-          console.error(err);
+          isCharacterLoading = false;
+          updateDownloadButton();
+          scheduleDraw();
         }
       }
     }
@@ -1897,11 +1953,14 @@
 
       elCharacterControls.classList.toggle("hidden", mode !== "character");
       elPhotoControls.classList.toggle("hidden", mode !== "photo");
+      updateDownloadButton();
 
       scheduleDraw();
     }
 
     function clearUploadedPhoto() {
+      ++photoLoadRequestId;
+      isPhotoLoading = false;
       uploadedPhotoImg = null;
       elPhotoUpload.value = "";
       elPhotoPreview.removeAttribute("src");
@@ -1910,10 +1969,12 @@
         URL.revokeObjectURL(uploadedPhotoUrl);
         uploadedPhotoUrl = null;
       }
+      updateDownloadButton();
     }
 
     function handlePhotoUpload() {
       const file = elPhotoUpload.files?.[0];
+      const requestId = ++photoLoadRequestId;
 
       if (!file) {
         clearUploadedPhoto();
@@ -1944,16 +2005,25 @@
       }
 
       uploadedPhotoUrl = URL.createObjectURL(file);
+      uploadedPhotoImg = null;
+      isPhotoLoading = true;
+      updateDownloadButton();
 
       const image = new Image();
 
       image.onload = () => {
+        if (requestId !== photoLoadRequestId) return;
+        isPhotoLoading = false;
+        updateDownloadButton();
         uploadedPhotoImg = image;
         elPhotoPreview.src = uploadedPhotoUrl;
         scheduleDraw();
       };
 
       image.onerror = () => {
+        if (requestId !== photoLoadRequestId) return;
+        isPhotoLoading = false;
+        updateDownloadButton();
         alert("사진을 불러오지 못했어. 다른 이미지 파일로 다시 시도해봐.");
         clearUploadedPhoto();
         scheduleDraw();
@@ -2031,7 +2101,7 @@
     }
 
     async function downloadPNG() {
-      if (isDownloading || !appReady || isTemplateLoading || templateError || (elLogoType.value === "custom" && isLogoLoading)) return;
+      if (elDownloadBtn.disabled) return;
 
       flushScheduledDraw();
 
@@ -2091,7 +2161,8 @@
         logoOffsetY: elLogoOffsetY.value,
         logoScale: elLogoScale.value,
         logoColor: elLogoColor.value,
-        hasLogo: Boolean(uploadedLogoUrl),
+        hasLogo: Boolean(uploadedLogoImg),
+        logoRevision: draftImageIdentity(uploadedLogoImg),
         name: elName.value,
         title: elTitle.value,
         team: elTeam.value,
@@ -2115,11 +2186,13 @@
         charOffsetX: elCharOffsetX.value,
         charOffsetY: elCharOffsetY.value,
         charScale: elCharScale.value,
+        charFlip: elCharFlip.checked,
         photoShape: elPhotoShape.value,
         photoOffsetX: elPhotoOffsetX.value,
         photoOffsetY: elPhotoOffsetY.value,
         photoScale: elPhotoScale.value,
-        hasPhoto: Boolean(uploadedPhotoImg)
+        hasPhoto: Boolean(uploadedPhotoImg),
+        photoRevision: draftImageIdentity(uploadedPhotoImg)
       });
     }
 
@@ -2135,6 +2208,7 @@
     }
 
     function resetDefaults() {
+      clearLocalDraft();
       selectTemplate("default");
       elLogoType.value = "erica";
       clearUploadedLogo();
@@ -2172,6 +2246,7 @@
       elCharOffsetX.value = 0;
       elCharOffsetY.value = 0;
       elCharScale.value = 100;
+      elCharFlip.checked = false;
 
       clearUploadedPhoto();
       elPhotoShape.value = "rounded";
@@ -2212,6 +2287,11 @@
       });
 
       elCharacter.addEventListener("change", updateCharacterAndDraw);
+      elCharFlip.addEventListener("change", () => { syncDotSelection(); scheduleDraw(); });
+      document.getElementById("clearCharacterBtn").addEventListener("click", () => {
+        elCharacter.value = "";
+        updateCharacterAndDraw();
+      });
 
       document.getElementById("prevBtn").addEventListener("click", () => moveCharacter(-1));
       document.getElementById("nextBtn").addEventListener("click", () => moveCharacter(1));
@@ -2267,6 +2347,7 @@
       document.querySelector(".version-badge").textContent = APP_VERSION;
       renderTemplateOptions();
       bindEvents();
+      bindDraftEvents();
       refreshCharacterOptions();
       updateRangeLabels();
       updateImageModeUI();
@@ -2285,6 +2366,7 @@
         await document.fonts.ready;
       }
 
+      await restoreLocalDraft();
       appReady = true;
       updateDownloadButton();
       flushScheduledDraw();
